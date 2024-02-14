@@ -1,0 +1,122 @@
+mql5
+//+------------------------------------------------------------------+
+//|                                           Max Super Trend.mq5    |
+//|                            Copyright 2022, Forex Robot Easy Team |
+//|                                                     forexroboteasy.com |
+//+------------------------------------------------------------------+
+#property copyright 'Copyright 2022, Forex Robot Easy Team'
+#property link      'forexroboteasy.com'
+#property version   '1.00'
+#property strict
+
+// Input parameters
+input int     ATRPeriod = 14;         // ATR period
+input double  ATRMultiplier = 2.0;    // ATR multiplier
+input int     SuperTrendPeriod = 10;  // Super Trend period
+input double  InitialStopDistance = 0.5;  // Initial stop distance
+
+// Global variables
+double atrBuffer[];
+double superTrendBuffer[];
+double stopBuffer[];
+
+//+------------------------------------------------------------------+
+//| Custom indicator initialization function                         |
+//+------------------------------------------------------------------+
+int OnInit()
+{
+    // Indicator buffers mapping
+    SetIndexBuffer(0, atrBuffer, INDICATOR_DATA);
+    SetIndexBuffer(1, superTrendBuffer, INDICATOR_DATA);
+    SetIndexBuffer(2, stopBuffer, INDICATOR_DATA);
+
+    // Set indicator labels
+    PlotIndexSetInteger(0, PLOT_DRAW_TYPE, DRAW_LINE);
+    PlotIndexSetInteger(0, PLOT_DRAW_COLOR, clrDodgerBlue);
+    PlotIndexSetInteger(1, PLOT_DRAW_TYPE, DRAW_LINE);
+    PlotIndexSetInteger(1, PLOT_DRAW_COLOR, clrRed);
+    PlotIndexSetInteger(2, PLOT_DRAW_TYPE, DRAW_LINE);
+    PlotIndexSetInteger(2, PLOT_DRAW_COLOR, clrGreen);
+
+    // Set indicator name
+    IndicatorSetString(INDICATOR_SHORTNAME, 'Max Super Trend');
+
+    return(INIT_SUCCEEDED);
+}
+
+//+------------------------------------------------------------------+
+//| Custom indicator iteration function                              |
+//+------------------------------------------------------------------+
+int OnCalculate(const int rates_total,
+                const int prev_calculated,
+                const datetime& time[],
+                const double& open[],
+                const double& high[],
+                const double& low[],
+                const double& close[],
+                const long& tick_volume[],
+                const long& volume[],
+                const int& spread[])
+{
+    // Calculate ATR
+    int atrCalculationResult = iATR(Symbol(), 0, ATRPeriod, atrBuffer);
+    if (atrCalculationResult < 0)
+        return(atrCalculationResult);
+
+    // Calculate Super Trend
+    for (int i = prev_calculated; i < rates_total; i++)
+    {
+        double atr = atrBuffer[i];
+        double upperBand = high[i] + (atr * ATRMultiplier);
+        double lowerBand = low[i] - (atr * ATRMultiplier);
+
+        if (i == 0)
+        {
+            superTrendBuffer[i] = (upperBand + lowerBand) / 2;
+            stopBuffer[i] = (close[i] > superTrendBuffer[i]) ? upperBand : lowerBand;
+        }
+        else
+        {
+            superTrendBuffer[i] = (superTrendBuffer[i-1] + close[i-1]) / 2;
+            stopBuffer[i] = (stopBuffer[i-1] > superTrendBuffer[i]) ? max(upperBand, stopBuffer[i-1]) : min(lowerBand, stopBuffer[i-1]);
+        }
+    }
+
+    return(rates_total);
+}
+
+//+------------------------------------------------------------------+
+//| Expert initialization function                                   |
+//+------------------------------------------------------------------+
+int OnInitExpert()
+{
+    // Enable trading
+    if (!IsTradeAllowed())
+        return(INIT_FAILED);
+
+    return(INIT_SUCCEEDED);
+}
+
+//+------------------------------------------------------------------+
+//| Expert deinitialization function                                 |
+//+------------------------------------------------------------------+
+void OnDeinitExpert()
+{
+    // Do nothing
+}
+
+//+------------------------------------------------------------------+
+//| Expert tick function                                             |
+//+------------------------------------------------------------------+
+void OnTick()
+{
+    // Do nothing
+}
+
+//+------------------------------------------------------------------+
+//| Expert start function                                            |
+//+------------------------------------------------------------------+
+void OnStart()
+{
+    // Do nothing
+}
